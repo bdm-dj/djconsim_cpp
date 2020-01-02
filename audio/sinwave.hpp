@@ -20,8 +20,8 @@ public:
     SinWave(int freq)
         : SoundObject(
               [freq]() {
-                  std::array<unsigned short, SAMPLINGRATE> wav_data;
-                  for (int i = 0; i < SAMPLINGRATE; i++) {
+                  std::array<unsigned short, SAMPLINGRATE / 100> wav_data;
+                  for (int i = 0; i < SAMPLINGRATE / 100; i++) {
                       wav_data[i] = 32767 * sin(2 * M_PI * i * freq / SAMPLINGRATE);
                   }
                   return wav_data;
