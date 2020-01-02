@@ -17,7 +17,6 @@
 namespace Audio
 {
 
-template <unsigned int sampling_rate>
 class OnlineWavePlayer
 {
 private:
@@ -25,20 +24,21 @@ private:
     volatile bool sound_ready;
 
 public:
-    OnlineWavePlayer() : sound_ready(false)
+    OnlineWavePlayer(int sampling_rate)
+        : sound_ready(false)
     {
-        std::thread play_thread{[this]() {
-            volatile bool infinite_loop = true;
-            while (infinite_loop) {
-                while (!sound_ready) {
+        std::thread play_thread{
+            [this]() {
+                volatile bool infinite_loop = true;
+                while (infinite_loop) {
+                    while (!sound_ready) {
+                    }
+                    sound_object.play();
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+                    sound_ready = false;
                 }
-                sound_object.play();
-                auto start = std::chrono::system_clock::now();  // 計測開始時間
-                while (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - start).count() < 100000) {
-                }
-                sound_ready = false;
-            }
-        }};
+            }};
         play_thread.detach();
     }
 
@@ -48,14 +48,15 @@ public:
         }
     }
 
-    void playWave(const std::array<unsigned short, sampling_rate / 100> wav_data)
+    void playWave(const std::array<unsigned short, sampling_rate> wav_data)
     {
+
         while (sound_ready) {
         }
         sound_object.setWave(wav_data);
         sound_ready = true;
     }
-};
+};  // namespace Audio
 
 
 }  // namespace Audio

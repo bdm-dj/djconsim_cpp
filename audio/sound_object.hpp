@@ -20,15 +20,14 @@ protected:
     ALuint source;
 
 public:
-    SoundObject(const std::array<unsigned short, sampling_rate / 100>& wav_data)
+    SoundObject(const std::array<unsigned short, sampling_rate>& wav_data)
     {
         alGenBuffers(1, &buffer);
         alGenSources(1, &source);
 
         //バッファに音源データを入れる
-        alBufferData(buffer, AL_FORMAT_MONO16, wav_data.data(), sampling_rate / 100 * sizeof(signed short), sampling_rate);
+        alBufferData(buffer, AL_FORMAT_MONO16, wav_data.data(), sampling_rate * sizeof(signed short), sampling_rate);
     }
-
 
     SoundObject()
     {
@@ -44,13 +43,13 @@ public:
         alDeleteSources(1, &source);
     }
 
-    void setWave(const std::array<unsigned short, sampling_rate / 100>& wav_data)
+    void setWave(const std::array<unsigned short, sampling_rate>& wav_data)
     {
         alDeleteBuffers(1, &buffer);
         alDeleteSources(1, &source);
         alGenBuffers(1, &buffer);
         alGenSources(1, &source);
-        alBufferData(buffer, AL_FORMAT_MONO16, wav_data.data(), sampling_rate / 100 * sizeof(signed short), sampling_rate);
+        alBufferData(buffer, AL_FORMAT_MONO16, wav_data.data(), sampling_rate * sizeof(signed short), sampling_rate);
     }
 
 

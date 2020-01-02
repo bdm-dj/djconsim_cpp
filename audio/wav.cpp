@@ -13,62 +13,66 @@
 namespace Audio
 {
 
+
 void WaveFile::open(std::string path)
 {
     fp.open(path.c_str(), std::ios::binary);
 
-    // "RIFF" の読み込み
-    unsigned int riff;
-    fp.read((char*)&riff, 4);
+    auto getChunkSize = [this](const std::string true_id) -> uint32_t {
+        std::string id(4, '\0');
+        fp.read(id.data(), 4);
+        std::cout << "compare(" << id << ", " << true_id << ")" << std::endl;
+        if (true_id != id) {
+            throw AudioException("Invalid Riff Identifier");
+        }
 
-    // データサイズを取得
-    // データサイズ = ファイルサイズ - 8 byte
-    fp.read((char*)&data_size, 4);
-    // WAVEの読み込み
-    unsigned int wave;
-    fp.read((char*)&wave, 4);
+        uint32_t size;
+        fp.read((char*)&size, 4);
+        return size;
+    };
 
     try {
-        // PCM 情報とデータの先頭の取得
-        for (int i = 0; i < 2; ++i) {
-            unsigned int res, size;
-            fp.read((char*)&res, 4);
-            fp.read((char*)&size, 4);
-            if (0x20746d66u == res) {  //fmt
-                // PCM 情報の取得
-                unsigned short res16;
-                fp.read((char*)&res16, 2);
-                if (1 != res16) {  // 非対応フォーマット
-                    throw AudioException("Invalid Wav Format");
-                }
-                // モノラル(1), ステレオ(2)
-                fp.read((char*)&channel_quantity, 2);
-                if (2 < channel_quantity) {
-                    throw AudioException("Invalid Channel Quantity");
-                }
-                // サンプリングレート
-                fp.read((char*)&sampling_rate, 4);
-                // 1秒あたりのバイト数(byte/sec)
-                fp.read((char*)&bps, 4);
-                // ブロックサイズ(byte/sample)
-                fp.read((char*)&block_size, 2);
-                // サンプルあたりのビット数(bit/sample)
-                fp.read((char*)&bit_per_sample, 2);
-            } else if (0x61746164u == res) {  //data
-                // データの開始位置を保存
-                data_head = fp.tellg();
-                data_size = size;
-                // データを読み飛ばす
-                fp.seekg(size, std::ios::cur);
+
+        {  // Chunk ID: RIFF
+            getChunkSize("RIFF");
+
+            std::string format(4, '\0');
+            fp.read(format.data(), 4);
+            if (format != "WAVE") {
+                throw AudioException("Error: Not a WAV file");
             }
         }
-        // データの開始位置までシーク
-        fp.seekg(data_head);
-        loaded_size = 0;
+
+        {  // Subchunk ID: fmt
+            uint32_t fmt_chunk_size = getChunkSize("fmt ");
+            fp.read((char*)&chunk_fmt, sizeof(chunk_fmt));
+            std::cout << "format: " << chunk_fmt.format << std::endl;
+            std::cout << "channel_quantity: " << chunk_fmt.channel_quantity << std::endl;
+            std::cout << "sampling_freq: " << chunk_fmt.sampling_freq << std::endl;
+            std::cout << "bps: " << chunk_fmt.bps << std::endl;
+            std::cout << "block_size: " << chunk_fmt.block_size << std::endl;
+            std::cout << "bit_per_sample: " << chunk_fmt.bit_per_sample << std::endl;
+
+
+            if (auto size_diff = fmt_chunk_size - sizeof(chunk_fmt); size_diff > 0) {
+                // skip extension params
+                fp.seekg(size_diff, std::ios::cur);
+            }
+        }
+
+        {  // Subchunk ID: data
+            wav_data_size = getChunkSize("data");
+            wav_data_head = fp.tellg();
+        }
+
     } catch (const AudioException& e) {
         std::cout << e.what() << std::endl;
         return;
     }
+
+    // jump to wav_file_head
+    fp.seekg(wav_data_head);
+    loaded_size = 0;
 }
 
 
