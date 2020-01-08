@@ -1,5 +1,10 @@
 #pragma once
 
+#include <al.h>
+#include <alc.h>
+
+#include <string>
+
 namespace Audio
 {
 
@@ -13,5 +18,6 @@ public:
 };
 
 void init();
+ALuint loadWAV(std::string path);
 
 }  // namespace Audio

@@ -3,33 +3,49 @@
 #include <al.h>
 #include <alc.h>
 
-#include <array>
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 #define _USE_MATH_DEFINES
 
 namespace Audio
 {
 
-template <unsigned int sampling_rate>
 class SoundObject
 {
 protected:
     ALuint buffer;
     ALuint source;
+    int sampling_rate;
 
 public:
-    SoundObject(const std::array<unsigned short, sampling_rate>& wav_data)
+    SoundObject(
+        int sampling_rate,
+        const std::vector<unsigned short>& wav_data)
+        : sampling_rate(sampling_rate)
     {
         alGenBuffers(1, &buffer);
         alGenSources(1, &source);
 
         //バッファに音源データを入れる
-        alBufferData(buffer, AL_FORMAT_MONO16, wav_data.data(), sampling_rate * sizeof(signed short), sampling_rate);
+        alBufferData(buffer, AL_FORMAT_MONO16, wav_data.data(), sampling_rate, sampling_rate);
     }
 
-    SoundObject()
+    SoundObject(
+        int sampling_rate,
+        const unsigned short* wav_data)
+        : sampling_rate(sampling_rate)
+    {
+        alGenBuffers(1, &buffer);
+        alGenSources(1, &source);
+
+        //バッファに音源データを入れる
+        alBufferData(buffer, AL_FORMAT_MONO16, wav_data, sampling_rate, sampling_rate);
+    }
+
+    SoundObject(int sampling_rate)
+        : sampling_rate(sampling_rate)
     {
         alGenBuffers(1, &buffer);
         alGenSources(1, &source);
@@ -43,13 +59,15 @@ public:
         alDeleteSources(1, &source);
     }
 
-    void setWave(const std::array<unsigned short, sampling_rate>& wav_data)
+    void setWave(const std::vector<unsigned short>& wav_data)
     {
-        alDeleteBuffers(1, &buffer);
-        alDeleteSources(1, &source);
+        //alDeleteBuffers(1, &buffer);
+        //alDeleteSources(1, &source);
         alGenBuffers(1, &buffer);
         alGenSources(1, &source);
-        alBufferData(buffer, AL_FORMAT_MONO16, wav_data.data(), sampling_rate * sizeof(signed short), sampling_rate);
+
+        std::cout << wav_data.size() << std::endl;
+        alBufferData(buffer, AL_FORMAT_MONO16, wav_data.data(), sampling_rate, sampling_rate);
     }
 
 
@@ -61,6 +79,11 @@ public:
         alSourcei(source, AL_LOOPING, AL_TRUE);
         //ソースを再生！
         alSourcePlay(source);
+    }
+
+    virtual void changePitch(float ratio)
+    {
+        alSourcef(source, AL_PITCH, ratio);
     }
 };
 

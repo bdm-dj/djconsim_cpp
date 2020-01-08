@@ -48,8 +48,8 @@ void WaveFile::open(std::string path)
             fp.read((char*)&chunk_fmt, sizeof(chunk_fmt));
             std::cout << "format: " << chunk_fmt.format << std::endl;
             std::cout << "channel_quantity: " << chunk_fmt.channel_quantity << std::endl;
-            std::cout << "sampling_freq: " << chunk_fmt.sampling_freq << std::endl;
-            std::cout << "bps: " << chunk_fmt.bps << std::endl;
+            std::cout << "sampling_rate: " << chunk_fmt.sampling_rate << std::endl;
+            std::cout << "byte_rate: " << chunk_fmt.byte_rate << std::endl;
             std::cout << "block_size: " << chunk_fmt.block_size << std::endl;
             std::cout << "bit_per_sample: " << chunk_fmt.bit_per_sample << std::endl;
 
@@ -75,6 +75,30 @@ void WaveFile::open(std::string path)
     loaded_size = 0;
 }
 
+std::vector<unsigned short> WaveFile::read(int size)
+{
+    std::cout << "read() size: " << size << std::endl;
+    std::vector<unsigned short> out(size);
+
+    fp.read(reinterpret_cast<char*>(out.data()), size * sizeof(unsigned short) / sizeof(char));
+    loaded_size += size;
+    if (loaded_size == wav_data_size) {
+        loaded_size = 0;
+        fp.seekg(wav_data_head);
+    }
+    return out;
+}
+
+std::vector<unsigned short> WaveFile::read_all()
+{
+    std::cout << "read_all()" << std::endl;
+    std::vector<unsigned short> out(wav_data_size);
+
+    fp.seekg(wav_data_head);
+    fp.read(reinterpret_cast<char*>(out.data()), wav_data_size * sizeof(unsigned short) / sizeof(char));
+
+    return out;
+}
 
 }  // namespace Audio
 

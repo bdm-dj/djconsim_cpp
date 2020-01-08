@@ -20,43 +20,70 @@ namespace Audio
 class OnlineWavePlayer
 {
 private:
-    Audio::SoundObject<sampling_rate> sound_object;
-    volatile bool sound_ready;
+    int sampling_rate;
+    Audio::SoundObject sound_object;
+    //std::mutex mtx;
+    //std::condition_variable cond;
+    volatile bool sound_updated;
+    volatile bool end;
+    std::thread play_thread;
 
 public:
     OnlineWavePlayer(int sampling_rate)
-        : sound_ready(false)
-    {
-        std::thread play_thread{
-            [this]() {
-                volatile bool infinite_loop = true;
-                while (infinite_loop) {
-                    while (!sound_ready) {
-                    }
-                    sound_object.play();
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        : sampling_rate(sampling_rate),
+          sound_object(sampling_rate),
+          sound_updated(false), end(false),
+          play_thread{
+              [this]() {
+                  while (!end) {
+                      std::cout << "play_thread is waiting to play" << std::endl;
+                      while (!sound_updated) {
+                      }
+                      //std::unique_lock<std::mutex> lock(mtx);
+                      //cond.wait(lock, [this]() { return sound_updated; });
+                      std::cout << "play_thread" << std::endl;
+                      sound_object.play();
+                      sound_updated = false;
+                      //cond.notify_one();
 
-                    sound_ready = false;
-                }
-            }};
-        play_thread.detach();
+                      std::cout << "play_thread sleep" << std::endl;
+                      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                      std::cout << "play_thread woke up" << std::endl;
+                  }
+                  std::cout << "play_thread ended" << std::endl;
+              }}
+    {
     }
 
     ~OnlineWavePlayer()
     {
-        while (sound_ready) {
-        }
+        end = true;
+        play_thread.join();
     }
 
-    void playWave(const std::array<unsigned short, sampling_rate> wav_data)
+    void playWave(const std::vector<unsigned short>& wav_data)
     {
+        std::thread set_thread{
+            [this, &wav_data]() {
+                //std::unique_lock<std::mutex> lock(mtx);
+                //cond.wait(lock, [this]() { return !sound_updated; });
+                std::cout << "audio_thread is waiting to set" << std::endl;
+                while (sound_updated) {
+                }
+                std::cout << "audio_thread" << std::endl;
+                sound_object.setWave(wav_data);
+                std::cout << "set done" << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                sound_updated = true;
+                //cond.notify_one();
+            }};
 
-        while (sound_ready) {
+        if (set_thread.joinable()) {
+            set_thread.join();
         }
-        sound_object.setWave(wav_data);
-        sound_ready = true;
+        std::cout << "playWave done" << std::endl;
     }
-};  // namespace Audio
+};
 
 
 }  // namespace Audio
