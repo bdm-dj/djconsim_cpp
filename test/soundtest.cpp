@@ -13,12 +13,14 @@
 #include <ncurses.h>
 #include <thread>
 
+#include <alut.h>
+
 void sigsegv_handler(int sig)
 {
     std::cout << "SIGSEGV! lol" << std::endl;
 }
 
-int main()
+int main(int argc, char** argv)
 {
 
 #if 1
@@ -30,8 +32,35 @@ int main()
 
     Audio::init();
 
-
 #if 1
+    {
+        alutInit(&argc, argv);
+        std::vector<std::thread> th_group;
+        for (int i = 0; i < 3; ++i) {
+            th_group.emplace_back([] {
+                ALuint helloBuffer, helloSource;
+                helloBuffer = alutCreateBufferHelloWorld();
+                //helloBuffer = alutCreateBufferFromFile("music.m4a");
+                alGenSources(1, &helloSource);
+                alSourcei(helloSource, AL_BUFFER, helloBuffer);
+                //    alSourcei(helloSource, AL_LOOPING, AL_TRUE);    //Disable a comment out if sound loop
+                alSourcePlay(helloSource);
+            });
+            using namespace std::chrono_literals;
+            std::this_thread::sleep_for(0.5s);
+        }
+        for (auto& th : th_group) {
+            th.join();
+        }
+        alutSleep(1);
+        alutExit();
+        return 0;
+    }
+
+#endif
+
+
+#if 0
     {
         /*
         std::thread bgm_thread{[]() {
